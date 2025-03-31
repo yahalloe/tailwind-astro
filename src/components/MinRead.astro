@@ -1,0 +1,48 @@
+---
+import { getCollection } from "astro:content";
+const getSlugFromUrl = () => {
+  const pathSegments = Astro.url.pathname.split("/").filter(Boolean);
+  console.log("Extracted Slug:", pathSegments);
+  return pathSegments[pathSegments.length - 1] || ""; // Ensure we get a valid slug
+};
+const calculateReadingTime = (text: string) => {
+  const wordsPerMinute = 200;
+  const plainText = text
+    .replace(/[#\-_`~\[\]()>|\\]/g, " ")
+    .replace(/!\[.?\]\(.?\)/g, " ") // Remove images
+    .replace(/```[\s\S]?```/g, " ") // Remove code blocks
+    .replace(/\s+/g, " ") // Normalize spaces
+    .trim();
+  console.log("Processed Text:", plainText.slice(0, 1000) + "..."); // Log preview
+  const wordCount = plainText.split(/\s+/).length;
+  return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
+};
+let minutes = 1;
+try {
+  const slug = getSlugFromUrl();
+  const allPosts = await getCollection("blog");
+  const currentPost = allPosts.find((post) => post.id === slug);
+  console.log("Current Post:", currentPost?.id || "Not Found");
+  if (currentPost) {
+    const content = currentPost.body || " ";
+    if (content.trim()) {
+      minutes = calculateReadingTime(content);
+    } else {
+      console.warn(
+        "Post found, but content is empty. Using default reading time."
+      );
+    }
+  } else {
+    console.warn("Post not found, using default reading time.");
+  }
+} catch (e) {
+  console.warn("Error calculating reading time:", e);
+}
+---
+
+<div class="minRead">・{minutes} min read</div>
+<style>
+  .minRead {
+    white-space: nowrap;
+  }
+</style>
